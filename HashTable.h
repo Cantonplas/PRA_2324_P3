@@ -9,94 +9,108 @@
 #include "..\Practica_1\Practica1 funcional\PRA_2425_P1\ListLinked.h"  // 
 
 template <typename V>
-class HashTable: public Dict<V> {
+class HashTable : public Dict<V> {
+private:
+    int n;
+    int max;
+    ListLinked<TableEntry<V>>* table;
 
-    private:
-        int n;
-        int max;
-        ListLinked<TableEntry<V>>* table;
-
-    public:
-        int h(std::string key) {
-            int hashValue = 0;
-            for (char c : key) {
-                hashValue += static_cast<int>(c);
-            }
-            return hashValue % max;
+    
+    int h(const std::string& key) {
+        int sum = 0;
+        for (char c : key) { // esto es igual a en python for c in key
+            sum += static_cast<int>(c);
         }
+        return (sum % max + max) % max;
+    }
 
-        HashTable(int size){
-            table = new ListLinked<TableEntry<V>>[size];
-            n = 0;
-            max = size;
-        }
+public:
 
-        ~HashTable(){
-            delete[] table;
-        }
+    HashTable(int size) {
+        if (size <= 0) throw std::invalid_argument("Tamaño invalido");
+        table = new ListLinked<TableEntry<V>>[size];
+        max = size;
+        n = 0;
+    }
 
-        int capacity(){
-            return max;
-        }
+    ~HashTable() {
+        delete[] table;
+    }
 
-        friend std::ostream& operator<<(std::ostream &out, const HashTable<V> &th){
-            out << "[";
-            for (int i = 0; i < th.max; ++i) {
-                out << th.table[i];
-                if (i < th.max - 1) {
-                    out << ", ";
-                }
-            }
-            out << "]";
-            return out;
-        }
 
-        V operator[](std::string key) {
-            int pos = h(key);
-            int index = table[pos].search(TableEntry<V>(key));
-            if (index == -1) {
-                throw std::out_of_range("Key not found");
-            }
-            return table[pos].get(index).value;
+    int capacity() {
+        return max;
+    }
+
+    
+    friend std::ostream& operator<<(std::ostream& out, const HashTable<V>& th) {
+        for (int i = 0; i < th.max; i++) {
+            out << i << ": " << th.table[i] << std::endl;
         }
-        
-        void insert(std::string key, V value) override{
-            int pos = h(key);
-            int index = table[pos].search(TableEntry<V>(key));
-            if (index == -1) {
-                table[pos].append(TableEntry<V>(key, value));
-                n++;
-            } else {
-                throw std::runtime_error("Key already exists");
+        return out;
+    }
+
+    
+    V operator[](std::string key) {
+        int aux = h(key);
+        for (int i = 0; i < table[aux].size(); i++) {
+            if (table[aux][i].key == key) {
+                return table[aux][i].value;
             }
         }
+        throw std::runtime_error("Clave no encontrada");
+    }
 
-        V search(std::string key) override{
-            int pos = h(key);
-            int index = table[pos].search(TableEntry<V>(key));
-            if (index == -1) {
-                throw std::out_of_range("Key not found");
+
+    void insert(std::string key, V value) override {
+        int aux = h(key);
+
+        for (int i = 0; i < table[aux].size(); i++) {
+            if (table[aux][i].key == key) {
+                throw std::runtime_error("Clave ya en uso");
             }
-            return table[pos].get(index).value;
         }
 
-        V remove(std::string key) override{
-            int pos = h(key);
-            int index = table[pos].search(TableEntry<V>(key));
-            if (index == -1) {
-                throw std::out_of_range("Key not found");
+        TableEntry<V> entry(key, value);
+        table[aux].insert(0, entry); 
+        n++;
+    }
+
+    V search(std::string key) override {
+        int aux = h(key);
+        if (table[aux].empty()) {
+            throw std::runtime_error("Clave no encontrada");
+        }
+
+        for (int i = 0; i < table[aux].size(); i++) {
+            if (table[aux][i].key == key) {
+                return table[aux][i].value;
             }
-            V value = table[pos].get(index).value;
-            table[pos].remove(index);
-            n--;
-            return value;
+        }
+        throw std::runtime_error("Clave no encontrada");
+    }
+
+    V remove(std::string key) override {
+        int aux = h(key);
+        if (table[aux].empty()) {
+            throw std::runtime_error("Clave no encontrada");
         }
 
-        int entries() override{
-            return n;
+        for (int i = 0; i < table[aux].size(); i++) {
+            if (table[aux][i].key == key) {
+                V val = table[aux][i].value;
+                table[aux].remove(i);
+                n--;
+                return val;
+            }
         }
-       
-        
+        throw std::runtime_error("Clave no encontrada");
+    }
+
+
+    int entries() override {
+        return n;
+    }
 };
 
-#endif
+#endif 
